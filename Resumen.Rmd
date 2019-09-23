@@ -1,0 +1,101 @@
+---
+type: oral   #oral, poster, table
+language: spanish
+title: "rvad: perfiles verticales de viento a patir de datos de radares meteorológicos"
+topics: [1, 2]
+# Para la lista de tópicos usá latinr::latinr_topics()
+authors:
+  - first_name: Paola
+    last_name: Corrales
+    email: paola.corrales@cima.fcen.uba.ar
+    country: ar  # lista en latinr::latinr_countries()
+    Affiliation: "Centro de Investigaciones del Mar y la Atmósfera UBA-CONICET"
+    url:   # Optional 
+    corresponding: true
+  - first_name: Elio 
+    last_name: Campitelli
+    email: elio.campitelli@cima.fcen.uba.ar
+    country: ar
+    Affiliation: "Centro de Investigaciones del Mar y la Atmósfera UBA-CONICET"
+    corresponding: false
+speaker: 1  # sólo un autor puede estar como speaker
+keywords: 
+  - "Meteorología"
+  - "Radar"
+  - "Viento"
+bibliography: biblio.bib
+biblio-style: apalike-es   
+output: 
+    latinr::latinr_article:
+      keep_tex: true
+params: 
+  check_is_error: FALSE
+  submission: FALSE
+header_includes:
+  - \usepackage{subfig}
+---
+
+```{r submission-checks, echo=FALSE, warning=TRUE}
+# Runs some basic checks in metadata. To disable, set check_is_error to FALSE
+latinr::latinr_checks(rmarkdown::metadata, params$check_is_error)
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.height=2.5,
+                      fig.width = 3)
+suppressPackageStartupMessages(library(ggplot2))
+```
+
+## Introducción
+
+El estudio y monitoreo del viento en niveles bajos de la atmósfera es de suma importancia ya que el mismo afecta diversos procesos que tienen un alto impacto en la sociedad. Por ejemplo influye en el desarrollo y severidad de las tormentas de manera directa por la rotación del viento con la altura en los primeros kilómetros. También afectan de manera indirecta a través de procesos de mayor escala, como el transporte de humedad desde el Amazonas hacia el sur de Sudamerica. Sin embargo, las mediciones de viento en superficie tienen una resolución espacial y temporal muy baja y normalmente se realizan únicamente a 10 metros de altura. 
+
+Los radares Doppler pueden medir el viento en un volumen de aire cada 5 o 10 minutos. Por esto tienen una gran potencialidad para estimar la variación del viento con la altura. Pero las variables medidas por el radar requieren algoritmos de procesamiento y técnicas de control de calidad de datos. Implementarlos en R permite extender el uso del lenguaje a otras diciplinas como la meteorología, tanto en investigación como en tareas operativas de monitoreo del tiempo. 
+
+En este trabajo se presenta el paquete [rvad](https://github.com/paocorrales/rvad) que implementa de la técnica _Velocity Azimuth Display_ (VAD) para estimar un perfil vertical de las componentes horizonaltes del viento a partir del viento medido por el radar. 
+
+## Algoritmo
+
+Un radar gira sobre su eje enviando pulsos de energía electromagnética en cada ángulo horizontal o _azimut_. Al terminar cada giro de 360 grados, cambia su _ángulo de elevación_ y repite el proceso. El pulso de radar recorre una determinada distancia (_rango_) y en el camino puede ser interceptado por gotas de agua, granizo o, en casos sin nubosidad, insectos. 
+
+Una de las variables medidas por el radar es la velocidad radial o Doppler, que corresponde a la componente radial del viento, es decir, la proyección del viento en la dirección de la propagación del haz de radar. Valores negativos corresponden a movimientos hacia el radar y valores positivos a movimientos desde el radar, mientras que el valor nulo ocurre en las regiones donde el viento es perpendicular a la trayectoria del haz.
+
+La técnica VAD aprovecha el comportamiento sinusoidal del viento radial para cada rango y ángulo de elevación y ajusta estos datos a una función de la forma $v \cos(\theta) \cos(\phi) + u \cos(theta) sin(\phi)$ donde $\theta$ es el ángulo de elevación y $\phi$ el azimuth. Estimando la propagación del haz del radar, es posible obtener una altura vertical para los valores del viento zonal ($u$) y meridional ($v$). 
+Finalmente, bajo ciertas condiciones es posible realizar un promedio de todas las estimaciones de $u$ y $v$ para obtener un perfil vertical de viento representativo del volumen de atmósfera escaneado por el radar. 
+
+## Implementación
+
+El paquete `rvad` implementa el algoritmo VAD presentado por @Browning1968 e incluye una serie de controles de calidad que buscan solucionar problemas típicos asociados a los datos de radar. 
+
+En primer lugar, la función `vad_fit()` toma vectores con la velocidad radial, el azimuth, el rango y el ángulo de elevación y realiza un ajuste sinusoidal para cada anillo de datos (las observaciones para un rango y ángulo de elevación particular). Además realiza los siguientes controles de calidad:
+
+**Antes del ajuste:**
+
+- Cuenta la cantidad de datos faltantes en el anillo y si supera un umbral máximo `max_na` el anillo es rechazado.
+- Busca gaps o huecos continuos de datos faltantes y rechaza aquellos anillos con huecos mayores al umbral `max_consecutive_na`.
+
+**Luego del ajuste:**
+
+- El algoritmo rechaza los anillos cuyo ajuste tiene un $R^2$ menor al umbral `r2_min`.
+
+El data frame resultante puede ser visualizando fácilmente con el método `plot()`.
+
+```{r vad_fit, fig.show="h", fig.cap = "Estimación del viento obtenido a partir de (a) vad\\_fit() y (b) vad\\_regrid()", fig.ncol = 2, fig.subcap = c("", ""), fig.align='center'}
+library(rvad)
+library(ggplot2)
+VAD <- with(radial_wind, vad_fit(radial_wind, azimuth, range, elevation))
+plot(VAD) + 
+  scale_color_discrete(guide = "none") +
+  labs(x = "Magnitud del viento (m/s)", y = "Altura (m)")
+wind_profile <- vad_regrid(VAD, layer_width = 100)
+plot(wind_profile) +
+  labs(y = "Magnitud del viento (m/s)", x = "Altura (m)")
+```
+
+En segundo lugar la función `vad_regrid()` toma el data frame generado por `vad_fit()` y genera un único perfil vertical en una grilla regular utilizando un regresión local de orden 1. La función devuelve el valor de $u$ y $v$ para cada nivel de altura y el intervalo de confianza asociado.
+
+Estas dos funciones principales deben ser utilizadas en serie para obtener el pertfil vertical. El paquete las implementa por separado dado que es importante analizar el ajuste individual de cada anillo en función del ángulo de elevación para evaluar la calidad de los datos y ajustar los controles de calidad. 
+
+## Referencias  
