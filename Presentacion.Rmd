@@ -13,6 +13,7 @@ library(rvad)
 library(data.table)
 library(magrittr)
 library(ggplot2)
+library(dplyr)
 source("helpfun.R")
 
 
@@ -80,5 +81,32 @@ na.omit(volumen) %>%
   theme(panel.ontop = T, 
         legend.key.height = unit(3, "lines"),
         legend.key.width = unit(0.4, "cm"))  
+```
+
+```{r}
+na.omit(volumen) %>% 
+  .[elevation == unique(elevation)[1] & range == 54990] %>% 
+  ggplot(aes(azimuth, radial_wind)) +
+  geom_line() +
+  geom_smooth(method = "lm", formula = y ~ I(sin(x*pi/180)) + I(cos(x*pi/180)), 
+              se = F, color = "#562457") +
+  scale_y_continuous(name = "Velocidad radial (m/s)") +
+  scale_x_continuous(name = "Azimut (grados)") +
+  geom_hline(yintercept = 0) +
+  theme_minimal()
+```
+
+```{r}
+VAD <- with(volumen, vad_fit(radial_wind, azimuth, range, elevation, outlier_threshold = 3)) %>% setDT %>% 
+  .[, spd := sqrt(u^2 + v^2)]
+
+VAD %>% 
+  ggplot(aes(spd, height)) +
+  geom_point(aes(color = factor(elevation))) +
+  scale_color_viridis_d(name = "Elevación") +
+  coord_cartesian(ylim = c(0, 2000)) +
+  labs(x = "Velocidad m/s", y = "Altura (m)") +
+  theme_minimal()
+
 ```
 
