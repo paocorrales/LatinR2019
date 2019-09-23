@@ -1,0 +1,21 @@
+---
+title: "Presentacion"
+author: "Pao"
+date: "September 23, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(metR)
+library(rvad)
+```
+
+## Campos de dBZ y Vr
+
+```{r}
+volumen <- ReadNetCDF("data/cfrad.20181121_110832.0000_to_20181121_111113.0000_RMA4_0200_02.nc")
+```
+
+
