@@ -40,7 +40,7 @@ na.omit(volumen) %>%
   .[elevation == unique(elevation)[1]] %>% 
   ggplot(aes(azimuth, range/1000)) +
   geom_point(aes(color = dBZ, size = range)) +
-  scale_size_area(max_size = 1) +
+  scale_size_area(max_size = 0.1) +
   scale_color_gradientn(colors = viridisLite::turbo(n = 7)) +
   geom_path(data = mapa.ar,
             aes(group = interaction(group, group2)), color = "darkgray") +
@@ -57,5 +57,28 @@ na.omit(volumen) %>%
         legend.key.height = unit(3, "lines"),
         legend.key.width = unit(0.4, "cm"))
 
+```
+
+```{r}
+na.omit(volumen) %>% 
+  .[elevation == unique(elevation)[1]] %>% 
+  ggplot(aes(azimuth, range/1000)) +
+  geom_point(aes(color = radial_wind, size = range)) +
+  scale_size_area(max_size = 0.1) +
+  scale_color_divergent(name = "Vr", limits = c(-20, 20), oob = scales::squish) +
+  geom_path(data = mapa.ar,
+            aes(group = interaction(group, group2)), color = "darkgray") +
+  scale_x_continuous(name = NULL, labels = NULL, breaks = seq(0, 359, 90)) +
+  scale_y_continuous(name = "Distancia al centro (km)",
+                     breaks = c(40, 80, 120, 160, 200),
+                     limits = c(0, 200), expand = c(0, 0)) +
+  guides(size = "none") +
+  labs(title = "RMA4 - Resistencia", 
+       subtitle = "Tiempo: 2018-11-21 11:00:00 Z | Elevación 0.53 grados") + 
+  coord_polar() +
+  theme_minimal()+ 
+  theme(panel.ontop = T, 
+        legend.key.height = unit(3, "lines"),
+        legend.key.width = unit(0.4, "cm"))  
 ```
 
