@@ -108,5 +108,41 @@ VAD %>%
   labs(x = "Velocidad m/s", y = "Altura (m)") +
   theme_minimal()
 
+plot(VAD)
+```
+
+```{r}
+
+library(rvad)
+
+volumen <- metR::ReadNetCDF("data/RMA4.20181121_110832.0000.nc",
+                      vars = c("radial_wind", "azimuth", "elevation")) 
+ 
+VAD <- with(volumen, vad_fit(radial_wind, azimuth, range, elevation, outlier_threshold = 3))
+
+# Argumentos para el control de calidad
+max_na = 0.2
+max_consecutive_na = 30
+r2_min = 0.8
+outlier_threshold = Inf
+azimuth_origin = 90
+azimuth_direction = c("cw", "ccw")
+
+```
+
+```{r}
+
+plot(VAD)
+
+```
+
+```{r}
+
+VAD_regrid <- vad_regrid(VAD, layer_width = 100, ht_out = seq(100, 2000, 50))
+
+
+
+plot(VAD_regrid)
+
 ```
 
