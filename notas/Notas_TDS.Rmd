@@ -1,0 +1,48 @@
+---
+title: "Notas_TDS"
+author: "Pao"
+date: "September 25, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Curriculum desing
+
+[slides](https://rstudio-education.github.io/teach-ds-latinR/01-curriculum-design/01-curriculum-design.pdf)
+
+- mostrar el resultado final y no el "título" de las cosas. La receta nunca es perfecta y es posible que si no saben nada, no lleguen a un buen resultado.
+
+**backwards desing:** (Gaise guidelines 2016)
+- No es solo inferencia y modelado, hay lectura de datos, preparación, exploración, etc.
+- Usar un software que crezca con los estudiantes
+
+1- Fundamentos de datos y vizualización + RStudio, git
+2- Tidy data, data frames, transformación + GitHub
+3- modelos, predicciones y validación, inferencia
+4- data science ethics
+
+Lo primero que ven es un rmarkdown, knit y análisis. 
+*Adelantarse a los errores*
+Jugar con un pequeño cambio en el gráfico (para ver como funciona y icebraker)
+Es mucho código, está claro, pero enfoquence en esta linea, que hace?
+Visualización: se puede ver con cada capa que hace cada línea de código
+Packge learr: para aprender lo técnico y aburrido afuera de la clase.
+
+Infrastructure and tools for teaching computing throughout...
+
+# RStudio Cloud
+
+[Slides](https://rstudio-education.github.io/teach-ds-latinR/02-computing-infrastructure/02-computing-infrastructure.pdf)
+
+Un workspace para cada curso, un projecto para cada workshop.
+
+# Reproducible workflow
+
+[Slides](https://rstudio-education.github.io/teach-ds-latinR/03-reproducible-workflows/03-reproducible-workflows.pdf)
+
+Para hacernos la vida más facil con el seteo de GitHub Classroom existe `ghclass` package.
+
+Cada workspace puede tener un *base* project con lo necesario como initial setup (paqutes, archivos) que luego se copia en TODOS los projectos que se generen a continuación. 
