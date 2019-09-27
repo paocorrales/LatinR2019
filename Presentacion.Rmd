@@ -14,6 +14,7 @@ library(data.table)
 library(magrittr)
 library(ggplot2)
 library(dplyr)
+library(patchwork)
 source("helpfun.R")
 
 
@@ -53,10 +54,12 @@ na.omit(volumen) %>%
   labs(title = "RMA4 - Resistencia", 
        subtitle = "Tiempo: 2018-11-21 11:00:00 Z | Elevación 0.53 grados") + 
   coord_polar() +
-  theme_minimal()+ 
+  theme_minimal(base_size = 16)+ 
   theme(panel.ontop = T, 
         legend.key.height = unit(3, "lines"),
         legend.key.width = unit(0.4, "cm"))
+
+ggsave("Rplot03.png", units = "cm", width = 20, height = 17)
 
 ```
 
@@ -77,10 +80,12 @@ na.omit(volumen) %>%
   labs(title = "RMA4 - Resistencia", 
        subtitle = "Tiempo: 2018-11-21 11:00:00 Z | Elevación 0.53 grados") + 
   coord_polar() +
-  theme_minimal()+ 
+  theme_minimal(base_size = 16)+ 
   theme(panel.ontop = T, 
         legend.key.height = unit(3, "lines"),
         legend.key.width = unit(0.4, "cm"))  
+
+ggsave("Rplot04.png", units = "cm", width = 20, height = 17)
 ```
 
 ```{r}
@@ -108,8 +113,57 @@ VAD %>%
   labs(x = "Velocidad m/s", y = "Altura (m)") +
   theme_minimal()
 
-plot(VAD)
+ggsave("Rplot02.png", units = "cm", width = 10, height = 12)
 ```
+
+```{r validación}
+radial_wind <- ReadNetCDF("data/cfrad.20181121_110832.0000_to_20181121_111113.0000_RMA4_0200_02.nc", vars = c("Vda", "azimuth", "elevation")) 
+  
+VAD <- with(radial_wind, vad_fit(Vda, azimuth, range, elevation, r2 = 0.5)) %>% 
+  setDT() %>% 
+  .[, `:=`(spd = sqrt(u^2 + v^2))]
+
+soundings <- fread("data/soundings_wyoming_87155.csv") %>% 
+  .[, time := as_datetime(time)] %>% 
+  .[time  == as_datetime("20181121120000")]
+
+VAD %>% 
+  copy() %>% 
+  .[r2 > 0.8] %>%
+  # .[elevation %between% c(0, 1)] %>% 
+  .[, vad_regrid(.SD, layer_width = 50, ht_out = seq(100, 2000, 50))] %>%
+  setDT() %>% 
+  .[, error := rvad:::error_prop(u, v, u_std.error, v_std.error)] %>% 
+  .[, spd := sqrt(u^2 + v^2)] %>% 
+  ggplot(aes(height +119, spd)) +
+  # geom_ribbon(aes(ymin = mean.spd - sd, ymax = mean.spd + sd), alpha = 0.2) +
+  geom_line(color = "#440154") +
+  geom_point(color = "#440154") +
+  geom_ribbon(aes(ymin = spd - 3*error, ymax = spd + 3*error), fill = "#440154", alpha = 0.5) + 
+  geom_line(data = na.omit(soundings), aes(height, spd), color = "#238A8D") +
+  geom_point(data = na.omit(soundings), aes(height, spd), color = "#238A8D") +
+  coord_flip(ylim = c(0, 15)) +
+  labs(x = "Altura", y = "Velocidad") +
+  theme_minimal() +
+
+VAD %>% 
+  copy() %>% 
+  .[r2 > 0.8] %>%
+  # .[elevation %between% c(0, 1)] %>% 
+  .[, vad_regrid(.SD, layer_width = 50, ht_out = seq(100, 2000, 50))] %>% 
+  ggplot(aes(height +119, 180+atan2(u, v)*180/pi)) +
+  # geom_ribbon(aes(ymin = mean.spd - sd, ymax = mean.spd + sd), alpha = 0.2) +
+  # geom_line(aes(color = QC)) +
+  geom_point(color = "#440154") +
+  # geom_line(data = na.omit(soundings), aes(height, dir)) +
+  geom_point(data = na.omit(soundings), aes(height, dir), color = "#238A8D") +
+  coord_flip() +
+  labs(x = "Altura", y = "Dirección") +
+  theme_minimal() +
+  plot_layout(ncol = 2)
+
+```
+
 
 ```{r}
 
@@ -140,7 +194,11 @@ plot(VAD)
 
 VAD_regrid <- vad_regrid(VAD, layer_width = 100, ht_out = seq(100, 2000, 50))
 
-
+# Argumentos para controlar la resolución
+layer_width
+resolution = layer_width
+ht_out = NULL
+min_n = 5
 
 plot(VAD_regrid)
 
